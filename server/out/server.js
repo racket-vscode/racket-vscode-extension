@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const node_1 = require("vscode-languageserver/node");
 const vscode_languageserver_textdocument_1 = require("vscode-languageserver-textdocument");
 const utils_1 = require("./utils");
+const parser_1 = require("./parser");
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
 const connection = (0, node_1.createConnection)(node_1.ProposedFeatures.all);
@@ -114,10 +115,9 @@ connection.onCompletion((_textDocumentPosition) => {
     // info and always provide the same completion items.
     const document = documents.get(_textDocumentPosition.textDocument.uri);
     if (document !== undefined) {
-        const definitionsCheck = (0, utils_1.checkDefinitions)(document, completions);
-        if (definitionsCheck) {
-            return definitionsCheck;
-        }
+        // TO DO: Get rid of repetition bug
+        const parser = new parser_1.Parser(document, completions);
+        return parser.parseEverything();
     }
     else {
         throw Error("Unknown file");
@@ -128,6 +128,9 @@ connection.onCompletion((_textDocumentPosition) => {
 // the completion list.
 //here i need to add some kind of env
 connection.onCompletionResolve((item) => {
+    if (item.kind == 3) {
+        item.detail = item.data;
+    }
     if (item.data === 1) {
         item.detail = '#lang <lang>';
         item.documentation = 'You should input language name in place <lang>';

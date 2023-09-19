@@ -2,8 +2,7 @@ import {
 	Diagnostic,
 	DiagnosticSeverity,
 	CompletionItem,
-	CompletionItemKind,
-	Definition
+	CompletionItemKind
 } from 'vscode-languageserver/node';
 
 import { TextDocument } from 'vscode-languageserver-textdocument';
@@ -64,30 +63,4 @@ function checkEnvironment(variableName : string, environment : CompletionItem[] 
 		}
 	});
 	return false;
-}
-
-export function checkDefinitions(textDocument : TextDocument, completions : CompletionItem[]) : CompletionItem[] | false {
-
-	//This functions will be optimized and changed in some ways. Now its a proof of concept
-
-	const variablePattern = /(\Wdefine \w+ (\w+|\W)\W)/g;
-	const functionPattern = "";
-	const text = textDocument.getText();
-	let newCompletions : CompletionItem[] = [];
-
-	text.match(variablePattern)?.forEach((elem) => {
-		const name = elem.split(" ")[1];
-    	const val = elem.split(" ")[2].split(")")[0];
-		newCompletions.push({label : name, kind : CompletionItemKind.Variable, data : val});
-	});
-	
-
-	let finalCompletions = [... new Set([...completions, ...newCompletions])];
-	
-	if (finalCompletions === null){
-		return false;
-	}
-
-	return finalCompletions;
-	
 }

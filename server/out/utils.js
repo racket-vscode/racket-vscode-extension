@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.checkDefinitions = exports.getAllInitialCompletions = exports.checkLang = void 0;
+exports.getAllInitialCompletions = exports.checkLang = void 0;
 const node_1 = require("vscode-languageserver/node");
 function checkLang(textDocument) {
     const langPattern = /(#lang+ )\w+/g;
@@ -54,22 +54,4 @@ function checkEnvironment(variableName, environment) {
     });
     return false;
 }
-function checkDefinitions(textDocument, completions) {
-    //This functions will be optimized and changed in some ways. Now its a proof of concept
-    const variablePattern = /(\Wdefine \w+ (\w+|\W)\W)/g;
-    const functionPattern = "";
-    const text = textDocument.getText();
-    let newCompletions = [];
-    text.match(variablePattern)?.forEach((elem) => {
-        const name = elem.split(" ")[1];
-        const val = elem.split(" ")[2].split(")")[0];
-        newCompletions.push({ label: name, kind: node_1.CompletionItemKind.Variable, data: val });
-    });
-    let finalCompletions = [...new Set([...completions, ...newCompletions])];
-    if (finalCompletions === null) {
-        return false;
-    }
-    return finalCompletions;
-}
-exports.checkDefinitions = checkDefinitions;
 //# sourceMappingURL=utils.js.map

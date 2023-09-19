@@ -18,17 +18,26 @@
 	},
 	"main": "./client/out/extension",
 	"contributes": {
-		"languages": [{
-			"id": "racket",
-			"aliases": ["racket", "racket"],
-			"extensions": [".rkt"],
-			"configuration": "./language-configuration.json"
-		  }],
-		  "grammars": [{
-			"language": "racket",
-			"scopeName": "source.rkt",
-			"path": "./syntaxes/racket.tmLanguage.json"
-		}],
+		"languages": [
+			{
+				"id": "racket",
+				"aliases": [
+					"racket",
+					"racket"
+				],
+				"extensions": [
+					".rkt"
+				],
+				"configuration": "./language-configuration.json"
+			}
+		],
+		"grammars": [
+			{
+				"language": "racket",
+				"scopeName": "source.rkt",
+				"path": "./syntaxes/racket.tmLanguage.json"
+			}
+		],
 		"configuration": {
 			"type": "object",
 			"title": "Example configuration",
@@ -69,5 +78,8 @@
 		"eslint": "^8.35.0",
 		"mocha": "^9.2.1",
 		"typescript": "^5.2.2"
+	},
+	"dependencies": {
+		"xregexp": "^5.1.1"
 	}
 }

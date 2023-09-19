@@ -21,8 +21,8 @@ import {
 	TextDocument,
 } from 'vscode-languageserver-textdocument';
 
-import { checkLang, getAllInitialCompletions, checkDefinitions } from './utils';
-
+import { checkLang, getAllInitialCompletions } from './utils';
+import { Parser } from './parser';
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -168,10 +168,9 @@ connection.onCompletion(
 		// info and always provide the same completion items.
 		const document = documents.get(_textDocumentPosition.textDocument.uri)
 		if (document !== undefined){
-			const definitionsCheck = checkDefinitions(document, completions)
-			if (definitionsCheck){
-				return definitionsCheck;
-			}
+			// TO DO: Get rid of repetition bug
+			const parser = new Parser(document,completions);
+			return parser.parseEverything();
 			
 		} else {
 			throw Error("Unknown file")
@@ -187,6 +186,9 @@ connection.onCompletion(
 //here i need to add some kind of env
 connection.onCompletionResolve(
 	(item: CompletionItem): CompletionItem => {
+		if (item.kind == 3){
+			item.detail = item.data;
+		}
 		if (item.data === 1) {
 			item.detail = '#lang <lang>';
 			item.documentation = 'You should input language name in place <lang>';
