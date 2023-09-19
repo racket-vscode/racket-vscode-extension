@@ -1,10 +1,5 @@
-/* --------------------------------------------------------------------------------------------
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See License.txt in the project root for license information.
- * ------------------------------------------------------------------------------------------ */
-
 import * as path from 'path';
-import { workspace, ExtensionContext, languages } from 'vscode';
+import { workspace, ExtensionContext} from 'vscode';
 
 import {
 	LanguageClient,
@@ -20,7 +15,6 @@ export function activate(context: ExtensionContext) {
 	const serverModule = context.asAbsolutePath(
 		path.join('server', 'out', 'server.js')
 	);
-	//languages.registerCompletionItemProvider('racket', undefined , '.', '(');
 
 	// If the extension is launched in debug mode then the debug server options are used
 	// Otherwise the run options are used

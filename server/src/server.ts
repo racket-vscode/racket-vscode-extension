@@ -1,30 +1,33 @@
-/* --------------------------------------------------------------------------------------------
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See License.txt in the project root for license information.
- * ------------------------------------------------------------------------------------------ */
 import {
 	createConnection,
 	TextDocuments,
 	Diagnostic,
+	Location,
 	DiagnosticSeverity,
+	Definition,
 	ProposedFeatures,
 	InitializeParams,
 	DidChangeConfigurationNotification,
 	CompletionItem,
 	CompletionItemKind,
+	TextDocumentIdentifier,
 	TextDocumentPositionParams,
 	TextDocumentSyncKind,
-	InitializeResult
+	InitializeResult,
+	TextEdit
 } from 'vscode-languageserver/node';
 
 import {
 	TextDocument,
 } from 'vscode-languageserver-textdocument';
 
+import { checkLang, getAllInitialCompletions, checkDefinitions } from './utils';
+
+
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
 const connection = createConnection(ProposedFeatures.all);
-
+let completions : CompletionItem[] = getAllInitialCompletions();
 // Create a simple text document manager.
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
@@ -51,7 +54,7 @@ connection.onInitialize((params: InitializeParams) => {
 
 	const result: InitializeResult = {
 		capabilities: {
-			
+			definitionProvider : true,
 			textDocumentSync: TextDocumentSyncKind.Incremental,
 			// Tell the client that this server supports code completion.
 			completionProvider: {
@@ -80,6 +83,8 @@ connection.onInitialized(() => {
 		});
 	}
 });
+
+
 
 // The example settings
 interface ExampleSettings {
@@ -140,47 +145,14 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 	const settings = await getDocumentSettings(textDocument.uri);
 
 	// The validator creates diagnostics for all uppercase words length 2 and more
-	const text = textDocument.getText();
+	const diagnostics: Diagnostic[] = [];
 
-	//const pattern = /\b[A-Z]{2,}\b/g;
-	//let m: RegExpExecArray | null;
-    //
-	//let problems = 0;
-	//const diagnostics: Diagnostic[] = [];
-	//while ((m = pattern.exec(text)) && problems < settings.maxNumberOfProblems) {
-	//	problems++;
-	//	const diagnostic: Diagnostic = {
-	//		severity: DiagnosticSeverity.Warning,
-	//		range: {
-	//			start: textDocument.positionAt(m.index),
-	//			end: textDocument.positionAt(m.index + m[0].length)
-	//		},
-	//		message: `${m[0]} is all uppercase.`,
-	//		source: 'ex'
-	//	};
-	//	if (hasDiagnosticRelatedInformationCapability) {
-	//		diagnostic.relatedInformation = [
-	//			{
-	//				location: {
-	//					uri: textDocument.uri,
-	//					range: Object.assign({}, diagnostic.range)
-	//				},
-	//				message: 'Spelling matters'
-	//			},
-	//			{
-	//				location: {
-	//					uri: textDocument.uri,
-	//					range: Object.assign({}, diagnostic.range)
-	//				},
-	//				message: 'Particularly for names'
-	//			}
-	//		];
-	//	}
-	//	diagnostics.push(diagnostic);
-	//}
-
-	// Send the computed diagnostics to VSCode.
-	//connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
+	const langCheck = checkLang(textDocument)
+	if (langCheck) {
+		diagnostics.push(langCheck)
+	}
+	
+	connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
 }
 
 connection.onDidChangeWatchedFiles(_change => {
@@ -194,35 +166,25 @@ connection.onCompletion(
 		// The pass parameter contains the position of the text document in
 		// which code complete got requested. For the example we ignore this
 		// info and always provide the same completion items.
-		return [
-			{
-				label: '#lang',
-				kind: CompletionItemKind.Keyword,
-				data: 1
-			},
-			{
-				label: 'define',
-				kind: CompletionItemKind.Keyword,
-				data: 2
-			},
-			{
-				label: 'provide',
-				kind: CompletionItemKind.Keyword,
-				data: 3
-			},
-			{
-				label : 'max',
-				kind : CompletionItemKind.Function,
-				data : 4
+		const document = documents.get(_textDocumentPosition.textDocument.uri)
+		if (document !== undefined){
+			const definitionsCheck = checkDefinitions(document, completions)
+			if (definitionsCheck){
+				return definitionsCheck;
 			}
+			
+		} else {
+			throw Error("Unknown file")
+		}
 		
-
-		];
+		return completions;
 	}
 );
 
 // This handler resolves additional information for the item selected in
 // the completion list.
+
+//here i need to add some kind of env
 connection.onCompletionResolve(
 	(item: CompletionItem): CompletionItem => {
 		if (item.data === 1) {
