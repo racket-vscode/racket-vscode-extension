@@ -1,14 +1,16 @@
 import * as path from 'path';
-import { workspace, ExtensionContext} from 'vscode';
+import { workspace, ExtensionContext, languages, ProviderResult, Hover, DiagnosticCollection} from 'vscode';
 
 import {
 	LanguageClient,
 	LanguageClientOptions,
 	ServerOptions,
-	TransportKind
+	TransportKind,
 } from 'vscode-languageclient/node';
+import { hoverProvider } from './hoverProvider';
 
 let client: LanguageClient;
+let diagnoscicCollection : DiagnosticCollection;
 
 export function activate(context: ExtensionContext) {
 	// The server is implemented in node
@@ -35,6 +37,11 @@ export function activate(context: ExtensionContext) {
 			fileEvents: workspace.createFileSystemWatcher('**/.clientrc')
 		}
 	};
+	// all providers go in this section
+	diagnoscicCollection = languages.createDiagnosticCollection('racket');
+	context.subscriptions.push(languages.registerHoverProvider('racket', hoverProvider));
+	context.subscriptions.push(diagnoscicCollection);
+
 
 	// Create the language client and start the client.
 	client = new LanguageClient(

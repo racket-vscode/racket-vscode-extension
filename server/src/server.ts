@@ -14,7 +14,10 @@ import {
 	TextDocumentPositionParams,
 	TextDocumentSyncKind,
 	InitializeResult,
-	TextEdit
+	TextEdit,
+	HandlerResult,
+	Hover,
+	MarkupKind
 } from 'vscode-languageserver/node';
 
 import {
@@ -59,7 +62,8 @@ connection.onInitialize((params: InitializeParams) => {
 			// Tell the client that this server supports code completion.
 			completionProvider: {
 				resolveProvider: true
-			}
+			},
+			hoverProvider : true
 		}
 	};
 	if (hasWorkspaceFolderCapability) {
@@ -84,7 +88,9 @@ connection.onInitialized(() => {
 	}
 });
 
-
+connection.onHover((handler ) => {
+	return null;
+});
 
 // The example settings
 interface ExampleSettings {

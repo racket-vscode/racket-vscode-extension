@@ -1,5 +1,5 @@
 {
-	"name": "lsp-sample",
+	"name": "racket",
 	"description": "A language server example",
 	"author": "Microsoft Corporation",
 	"license": "MIT",

@@ -29,7 +29,8 @@ connection.onInitialize((params) => {
             // Tell the client that this server supports code completion.
             completionProvider: {
                 resolveProvider: true
-            }
+            },
+            hoverProvider: true
         }
     };
     if (hasWorkspaceFolderCapability) {
@@ -51,6 +52,9 @@ connection.onInitialized(() => {
             connection.console.log('Workspace folder change event received.');
         });
     }
+});
+connection.onHover((handler) => {
+    return null;
 });
 // The global settings, used when the `workspace/configuration` request is not supported by the client.
 // Please note that this is not the case when using this server with the client provided in this example

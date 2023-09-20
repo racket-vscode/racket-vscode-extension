@@ -48,6 +48,9 @@ export class Parser {
 				let name;
 				if (parsedExpression[1].length > 1){
 					name = parsedExpression[1].substring(1);
+					if (parsedExpression[1].slice(-1) == ")"){
+						name = name.slice(0, -1);
+					}
 				} else {
 					name = parsedExpression[2];
 				}
@@ -61,7 +64,7 @@ export class Parser {
 					preetierDefinition += parsedExpression[i] + " ";
 				}
 				
-				newCompletions.push({label : name, kind : CompletionItemKind.Function, data : `(${preetierDefinition} ....)`});
+				newCompletions.push({label : name, kind : CompletionItemKind.Function, data : `(${preetierDefinition} \n ....)`});
 			} 
 			
 		});
