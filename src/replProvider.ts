@@ -5,6 +5,7 @@ import { exec } from "child_process";
 import * as path from "path";
 import * as os from "os";
 import * as kill from "tree-kill";
+// import * as is-running from 'is-running';
 
 function getDir(filePath : String, sep : string) : String {
 	return filePath.substring(0, filePath.lastIndexOf(sep));
@@ -57,6 +58,21 @@ export class REPLProvider implements vscode.Disposable {
 	// create a new REPL terminal
 	private initTerminal() : vscode.Terminal {
 		return vscode.window.createTerminal("Racket");
+	}
+
+	private async createNewTerminalIfNeeded(terminal : vscode.Terminal = this.terminal) : Promise<vscode.Terminal> {
+		const pid = await terminal.processId;
+
+		if (!require('is-running')(pid)) {
+			console.log("PID is killed!");
+			this.terminal = await this.initTerminal(); // TODO: check
+			terminal = await this.terminal;
+		}
+		else {
+			console.log("PID is still working!");
+		}
+
+		return terminal;
 	}
 
 	// run the REPL with the current file
@@ -119,10 +135,12 @@ export class REPLProvider implements vscode.Disposable {
 	}
 
 	// paste (enter! (file ./file.rkt)) into the terminal
-	public loadFileInREPL(terminal : vscode.Terminal = this.terminal) : void {
+	public async loadFileInREPL(terminal : vscode.Terminal = this.terminal) : Promise<void> {
 		let editor : vscode.TextEditor = vscode.window.activeTextEditor!;
 
 		const filePath : String = editor.document.fileName;
+
+		terminal = await this.createNewTerminalIfNeeded(terminal);
 
 		terminal.show();
 		terminal.sendText(`(enter! (file "${filePath}"))`);
@@ -130,12 +148,12 @@ export class REPLProvider implements vscode.Disposable {
 
 	// TODO: add optional "clear" here
 	// racket file.rkt
-	public runFileInTerminal(terminal : vscode.Terminal = this.terminal) : void {
+	public async runFileInTerminal(terminal : vscode.Terminal = this.terminal) : Promise<void> {
 		let editor : vscode.TextEditor = vscode.window.activeTextEditor!;
 
 		const filePath : String = editor.document.fileName;
 
-		// FIXME: there is a bug when you kill the terminal -> fix it
+		terminal = await this.createNewTerminalIfNeeded(terminal);
 
 		terminal.show();
 
