@@ -1,0 +1,8 @@
+#!/bin/bash
+
+export cur=$PWD
+cd "$1"
+echo $cur
+
+
+clear && racket -i -f "$cur/enter.rkt" "$1" "$2"
