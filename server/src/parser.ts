@@ -18,10 +18,17 @@ export class Parser {
 	constructor(text : TextDocument, completions : CompletionItem[]){
 		this.globalTextFile = text;
 		this.globalCompletions = completions;
-		this.globalParsedProgram = XRegExp.matchRecursive(this.globalTextFile.getText(), '\\(', '\\)', 'g');
+		// If parentasee is unclosed, we will get an error, thus we wait for completion.
+		try {
+			this.globalParsedProgram = XRegExp.matchRecursive(this.globalTextFile.getText(), '\\(', '\\)', 'g');
+		} catch (error) {
+			this.globalParsedProgram = [""]
+			return;
+		}
+		
 	}
 
-	public parseVariables() : CompletionItem[]{
+	public async parseVariables() : Promise<CompletionItem[]>{
 
 		let newCompletions : CompletionItem[] = [];
 		
@@ -44,7 +51,7 @@ export class Parser {
 		
 		this.globalParsedProgram.forEach((elem) => {
 			const parsedExpression = elem.trim().replace(/\s\s+/g, ' ').split(" ");
-			if (parsedExpression[0] == "define" && parsedExpression[1][0] == "("){
+			if ((parsedExpression[0] == "define" || parsedExpression[0] == "define/contract") && parsedExpression[1][0] == "("){
 				let name;
 				if (parsedExpression[1].length > 1){
 					name = parsedExpression[1].substring(1);
@@ -64,7 +71,7 @@ export class Parser {
 					preetierDefinition += parsedExpression[i] + " ";
 				}
 				
-				newCompletions.push({label : name, kind : CompletionItemKind.Function, data : `(${preetierDefinition} \n ....)`});
+				newCompletions.push({label : name, kind : CompletionItemKind.Function, data : `(${preetierDefinition} \n ...)`});
 			} 
 			
 		});
@@ -74,7 +81,7 @@ export class Parser {
 		return this.globalCompletions;
 	}
 
-	public parseEverything() : CompletionItem[]{
+	public  parseEverything() : CompletionItem[]{
 		this.parseVariables()
 		return this.parseFunctions()
 	}

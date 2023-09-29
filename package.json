@@ -80,6 +80,9 @@
 		"typescript": "^5.2.2"
 	},
 	"dependencies": {
+		"child_process": "^1.0.2",
+		"file-uri-to-path": "^2.0.0",
+		"vscode-uri": "^3.0.7",
 		"xregexp": "^5.1.1"
 	}
 }

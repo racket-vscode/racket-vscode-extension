@@ -29,7 +29,7 @@ const vscode_1 = require("vscode");
 const node_1 = require("vscode-languageclient/node");
 const hoverProvider_1 = require("./hoverProvider");
 let client;
-let diagnoscicCollection;
+let diagnosticCollection;
 function activate(context) {
     // The server is implemented in node
     const serverModule = context.asAbsolutePath(path.join('server', 'out', 'server.js'));
@@ -52,9 +52,9 @@ function activate(context) {
         }
     };
     // all providers go in this section
-    diagnoscicCollection = vscode_1.languages.createDiagnosticCollection('racket');
+    diagnosticCollection = vscode_1.languages.createDiagnosticCollection('racket');
     context.subscriptions.push(vscode_1.languages.registerHoverProvider('racket', hoverProvider_1.hoverProvider));
-    context.subscriptions.push(diagnoscicCollection);
+    context.subscriptions.push(diagnosticCollection);
     // Create the language client and start the client.
     client = new node_1.LanguageClient('languageServerExample', 'Language Server Example', serverOptions, clientOptions);
     // Start the client. This will also launch the server

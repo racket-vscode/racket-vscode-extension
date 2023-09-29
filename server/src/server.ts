@@ -17,7 +17,9 @@ import {
 	TextEdit,
 	HandlerResult,
 	Hover,
-	MarkupKind
+	MarkupKind,
+	TextDocumentChangeEvent,
+	Position
 } from 'vscode-languageserver/node';
 
 import {
@@ -26,7 +28,9 @@ import {
 
 import { checkLang, getAllInitialCompletions } from './utils';
 import { Parser } from './parser';
-
+import { execPromise, itemDetailer } from './utils';
+import { URI } from 'vscode-uri'
+import fileUriToPath from 'file-uri-to-path';
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
 const connection = createConnection(ProposedFeatures.all);
@@ -140,25 +144,47 @@ documents.onDidClose(e => {
 	documentSettings.delete(e.document.uri);
 });
 
+
+
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent(change => {
 	validateTextDocument(change.document);
 });
 
+
 async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 	// In this simple example we get the settings for every validate run.
-	const settings = await getDocumentSettings(textDocument.uri);
-
-	// The validator creates diagnostics for all uppercase words length 2 and more
 	const diagnostics: Diagnostic[] = [];
-
-	const langCheck = checkLang(textDocument)
-	if (langCheck) {
-		diagnostics.push(langCheck)
+	const output = await execPromise(`racket "${fileUriToPath(decodeURIComponent(textDocument.uri))}"`);
+	console.log(fileUriToPath(decodeURIComponent(textDocument.uri)));
+	console.log(output);
+	if (typeof output === "string"){
+		const info = output.split('\n')[0]
+		let start = 0
+		let pos = 0
+		console.log(output.split('\n')[0].split(":"));
+			if (info == ""){
+				connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
+			} else {
+				console.log(info);
+				if (output.split('\n')[0].split(":")[2] != null){
+					start = Number(output.split('\n')[0].split(":")[1]) - 1
+					pos = Number(output.split('\n')[0].split(":")[2]) 
+				
+				}
+				diagnostics.push({
+					severity: DiagnosticSeverity.Error,
+					message : info,
+					range: {
+						start: Position.create(start, pos),
+						end: Position.create(start, pos)
+					},
+					source: `${textDocument.uri.split('/').at(-1)}`
+				})
+				connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
+			}
 	}
-	
-	connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
 }
 
 connection.onDidChangeWatchedFiles(_change => {
@@ -172,6 +198,7 @@ connection.onCompletion(
 		// The pass parameter contains the position of the text document in
 		// which code complete got requested. For the example we ignore this
 		// info and always provide the same completion items.
+		
 		const document = documents.get(_textDocumentPosition.textDocument.uri)
 		if (document !== undefined){
 			// TO DO: Get rid of repetition bug
@@ -181,8 +208,6 @@ connection.onCompletion(
 		} else {
 			throw Error("Unknown file")
 		}
-		
-		return completions;
 	}
 );
 
@@ -192,9 +217,6 @@ connection.onCompletion(
 //here i need to add some kind of env
 connection.onCompletionResolve(
 	(item: CompletionItem): CompletionItem => {
-		if (item.kind == 3){
-			item.detail = item.data;
-		}
 		if (item.data === 1) {
 			item.detail = '#lang <lang>';
 			item.documentation = 'You should input language name in place <lang>';
@@ -208,7 +230,7 @@ connection.onCompletionResolve(
 			item.detail = 'max'
 			item.documentation = 'in racket : (max exp exp ...) in plait : (max arg1 arg2)'
 		}
-		return item;
+		return itemDetailer(item);
 	}
 );
 

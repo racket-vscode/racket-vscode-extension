@@ -1,9 +1,14 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const node_1 = require("vscode-languageserver/node");
 const vscode_languageserver_textdocument_1 = require("vscode-languageserver-textdocument");
 const utils_1 = require("./utils");
 const parser_1 = require("./parser");
+const utils_2 = require("./utils");
+const file_uri_to_path_1 = __importDefault(require("file-uri-to-path"));
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
 const connection = (0, node_1.createConnection)(node_1.ProposedFeatures.all);
@@ -99,14 +104,36 @@ documents.onDidChangeContent(change => {
 });
 async function validateTextDocument(textDocument) {
     // In this simple example we get the settings for every validate run.
-    const settings = await getDocumentSettings(textDocument.uri);
-    // The validator creates diagnostics for all uppercase words length 2 and more
     const diagnostics = [];
-    const langCheck = (0, utils_1.checkLang)(textDocument);
-    if (langCheck) {
-        diagnostics.push(langCheck);
+    const output = await (0, utils_2.execPromise)(`racket "${(0, file_uri_to_path_1.default)(decodeURIComponent(textDocument.uri))}"`);
+    console.log((0, file_uri_to_path_1.default)(decodeURIComponent(textDocument.uri)));
+    console.log(output);
+    if (typeof output === "string") {
+        const info = output.split('\n')[0];
+        let start = 0;
+        let pos = 0;
+        console.log(output.split('\n')[0].split(":"));
+        if (info == "") {
+            connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
+        }
+        else {
+            console.log(info);
+            if (output.split('\n')[0].split(":")[2] != null) {
+                start = Number(output.split('\n')[0].split(":")[1]) - 1;
+                pos = Number(output.split('\n')[0].split(":")[2]);
+            }
+            diagnostics.push({
+                severity: node_1.DiagnosticSeverity.Error,
+                message: info,
+                range: {
+                    start: node_1.Position.create(start, pos),
+                    end: node_1.Position.create(start, pos)
+                },
+                source: `${textDocument.uri.split('/').at(-1)}`
+            });
+            connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
+        }
     }
-    connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
 }
 connection.onDidChangeWatchedFiles(_change => {
     // Monitored files have change in VSCode
@@ -126,15 +153,11 @@ connection.onCompletion((_textDocumentPosition) => {
     else {
         throw Error("Unknown file");
     }
-    return completions;
 });
 // This handler resolves additional information for the item selected in
 // the completion list.
 //here i need to add some kind of env
 connection.onCompletionResolve((item) => {
-    if (item.kind == 3) {
-        item.detail = item.data;
-    }
     if (item.data === 1) {
         item.detail = '#lang <lang>';
         item.documentation = 'You should input language name in place <lang>';
@@ -151,7 +174,7 @@ connection.onCompletionResolve((item) => {
         item.detail = 'max';
         item.documentation = 'in racket : (max exp exp ...) in plait : (max arg1 arg2)';
     }
-    return item;
+    return (0, utils_2.itemDetailer)(item);
 });
 // Make the text document manager listen on the connection
 // for open, change and close text document events
