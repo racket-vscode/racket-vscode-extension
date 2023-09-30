@@ -29,7 +29,6 @@ connection.onInitialize((params) => {
         capabilities.textDocument.publishDiagnostics.relatedInformation);
     const result = {
         capabilities: {
-            definitionProvider: true,
             textDocumentSync: node_1.TextDocumentSyncKind.Incremental,
             // Tell the client that this server supports code completion.
             completionProvider: {
@@ -47,7 +46,7 @@ connection.onInitialize((params) => {
     }
     return result;
 });
-connection.onInitialized(() => {
+connection.onInitialized((params) => {
     if (hasConfigurationCapability) {
         // Register for all configuration changes.
         connection.client.register(node_1.DidChangeConfigurationNotification.type, undefined);
@@ -58,7 +57,30 @@ connection.onInitialized(() => {
         });
     }
 });
-connection.onHover((handler) => {
+connection.onHover((params) => {
+    const document = documents.get(params.textDocument.uri);
+    if (!document) {
+        return null;
+    }
+    const position = params.position;
+    const wordRange = (0, utils_1.getWordRangeAtPosition)(document, position);
+    if (!wordRange) {
+        return null;
+    }
+    const word = document.getText(wordRange);
+    let data = undefined;
+    for (let i = 0; i < completions.length; i++) {
+        if (completions[i].label == word && (completions[i].kind == 3 || completions[i].kind == 6)) {
+            data = completions[i].data;
+        }
+    }
+    if (typeof data != 'undefined') {
+        let markdown = ['```lisp', `${data}`, '```'].join('\n');
+        return {
+            contents: { kind: "markdown", value: markdown },
+            range: wordRange,
+        };
+    }
     return null;
 });
 // The global settings, used when the `workspace/configuration` request is not supported by the client.
@@ -148,7 +170,8 @@ connection.onCompletion((_textDocumentPosition) => {
     if (document !== undefined) {
         // TO DO: Get rid of repetition bug
         const parser = new parser_1.Parser(document, completions);
-        return parser.parseEverything();
+        completions = parser.parseEverything();
+        return completions;
     }
     else {
         throw Error("Unknown file");
@@ -158,22 +181,6 @@ connection.onCompletion((_textDocumentPosition) => {
 // the completion list.
 //here i need to add some kind of env
 connection.onCompletionResolve((item) => {
-    if (item.data === 1) {
-        item.detail = '#lang <lang>';
-        item.documentation = 'You should input language name in place <lang>';
-    }
-    else if (item.data === 2) {
-        item.detail = 'define <expr>';
-        item.documentation = "define let's you define a function, or preety much anything";
-    }
-    else if (item.data == 3) {
-        item.detail = 'provide';
-        item.documentation = 'random';
-    }
-    else if (item.data == 4) {
-        item.detail = 'max';
-        item.documentation = 'in racket : (max exp exp ...) in plait : (max arg1 arg2)';
-    }
     return (0, utils_2.itemDetailer)(item);
 });
 // Make the text document manager listen on the connection

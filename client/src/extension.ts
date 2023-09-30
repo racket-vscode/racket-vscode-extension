@@ -7,7 +7,6 @@ import {
 	ServerOptions,
 	TransportKind,
 } from 'vscode-languageclient/node';
-import { hoverProvider } from './hoverProvider';
 
 let client: LanguageClient;
 let diagnosticCollection : DiagnosticCollection;
@@ -38,9 +37,9 @@ export function activate(context: ExtensionContext) {
 		}
 	};
 	// all providers go in this section
-	diagnosticCollection = languages.createDiagnosticCollection('racket');
-	context.subscriptions.push(languages.registerHoverProvider('racket', hoverProvider));
-	context.subscriptions.push(diagnosticCollection);
+	//diagnosticCollection = languages.createDiagnosticCollection('racket');
+	//context.subscriptions.push(languages.registerHoverProvider('racket', hoverProvider));
+	//context.subscriptions.push(diagnosticCollection);
 	
 
 	// Create the language client and start the client.

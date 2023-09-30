@@ -3,11 +3,13 @@ import {
 	DiagnosticSeverity,
 	CompletionItem,
 	CompletionItemKind,
-	MarkupContent
+	MarkupContent,
+	Range
 } from 'vscode-languageserver/node';
 
-import { TextDocument } from 'vscode-languageserver-textdocument';
 
+import { Position, TextDocument } from 'vscode-languageserver-textdocument';
+import { Parser } from './parser';
 import { exec } from 'child_process';
 
 export function checkLang(textDocument : TextDocument)  : Diagnostic | false {
@@ -50,7 +52,7 @@ export function execPromise(cmd : string) {
 
 export function itemDetailer(item : CompletionItem) : CompletionItem {
 
-	if (item.kind == 3){
+	if (item.kind == 3 || item.kind == 6){
 		item.detail = "";
 		let markdown: MarkupContent = {
 			kind: "markdown",
@@ -63,6 +65,68 @@ export function itemDetailer(item : CompletionItem) : CompletionItem {
 		item.documentation = markdown;
 	}
 	return item
+}
+
+
+export function getWordRangeAtPosition(document : TextDocument, position : Position) {
+	const currentLine = document.getText().split(/\r\n|\r|\n/).at(position.line);
+	let start = 0;
+	let end = 0;
+
+	if (typeof currentLine != 'undefined'){
+
+		[...currentLine.matchAll(/[\w\d-.><="?]+/g)].forEach((elem) =>{
+			if (typeof elem.index != 'undefined'){
+				if (position.character >= elem.index  && position.character <= elem.index + elem[0].length){
+					start = elem.index
+					end = start + elem[0].length
+				}
+			}
+			
+		})
+
+		return Range.create({line : position.line, character : start}, {line : position.line, character : end})
+	}
+
+	return null
+}
+
+export function changeOrAdd(items : CompletionItem[], completions : CompletionItem[]){
+
+	const initials = getAllInitialCompletions()
+	for (let i = 0; i < getAllInitialCompletions().length; i++){
+		completions[i] = initials[i]
+	}
+
+	items.forEach((elem) => {
+		let found = false;
+		console.log(elem);
+		for (let i = 0; i < completions.length; i++){
+			if (completions[i].label == elem.label){
+				found = true
+				completions[i].data = elem.data
+				completions[i].kind = elem.kind
+			}
+		}
+		if (!found){
+			completions.push(elem)
+		}
+	})
+
+	let returnedCompletions = completions
+	for (let i = getAllInitialCompletions().length; i < completions.length; i++){
+		let found = false;
+		for (let j = 0; j < items.length; j++){
+			if (items[j].label == completions[i].label){
+				found = true
+			}
+		}
+		if (!found){
+			returnedCompletions.splice(i, 1);
+		}
+	}
+	
+	return returnedCompletions
 }
 
 export function getAllInitialCompletions() : CompletionItem[] {
@@ -117,17 +181,17 @@ export function getAllInitialCompletions() : CompletionItem[] {
 		{
 			label: 'struct',
 			kind: CompletionItemKind.Keyword,
-			data: 5
+			data: ''
 		},
 		{
 			label: 'define-struct',
 			kind: CompletionItemKind.Keyword,
-			data: 6
+			data: ''
 		},
 		{
 			label: 'cond',
 			kind: CompletionItemKind.Keyword,
-			data: 8
+			data: ''
 		},
 		{
 			label: 'foldl',
@@ -276,7 +340,7 @@ export function getAllInitialCompletions() : CompletionItem[] {
 		{
 			label : 'list->string',
 			kind : CompletionItemKind.Function,
-			data : `(list->string lst) → string?
+			data : `(define (list->string lst)) → string?
 	lst : (listof char?)`
 		},
 		{

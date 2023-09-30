@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAllInitialCompletions = exports.itemDetailer = exports.execPromise = exports.checkLang = void 0;
+exports.getAllInitialCompletions = exports.changeOrAdd = exports.getWordRangeAtPosition = exports.itemDetailer = exports.execPromise = exports.checkLang = void 0;
 const node_1 = require("vscode-languageserver/node");
 const child_process_1 = require("child_process");
 function checkLang(textDocument) {
@@ -38,7 +38,7 @@ function execPromise(cmd) {
 }
 exports.execPromise = execPromise;
 function itemDetailer(item) {
-    if (item.kind == 3) {
+    if (item.kind == 3 || item.kind == 6) {
         item.detail = "";
         let markdown = {
             kind: "markdown",
@@ -53,6 +53,58 @@ function itemDetailer(item) {
     return item;
 }
 exports.itemDetailer = itemDetailer;
+function getWordRangeAtPosition(document, position) {
+    const currentLine = document.getText().split(/\r\n|\r|\n/).at(position.line);
+    let start = 0;
+    let end = 0;
+    if (typeof currentLine != 'undefined') {
+        [...currentLine.matchAll(/[\w\d-.><="?]+/g)].forEach((elem) => {
+            if (typeof elem.index != 'undefined') {
+                if (position.character >= elem.index && position.character <= elem.index + elem[0].length) {
+                    start = elem.index;
+                    end = start + elem[0].length;
+                }
+            }
+        });
+        return node_1.Range.create({ line: position.line, character: start }, { line: position.line, character: end });
+    }
+    return null;
+}
+exports.getWordRangeAtPosition = getWordRangeAtPosition;
+function changeOrAdd(items, completions) {
+    const initials = getAllInitialCompletions();
+    for (let i = 0; i < getAllInitialCompletions().length; i++) {
+        completions[i] = initials[i];
+    }
+    items.forEach((elem) => {
+        let found = false;
+        console.log(elem);
+        for (let i = 0; i < completions.length; i++) {
+            if (completions[i].label == elem.label) {
+                found = true;
+                completions[i].data = elem.data;
+                completions[i].kind = elem.kind;
+            }
+        }
+        if (!found) {
+            completions.push(elem);
+        }
+    });
+    let returnedCompletions = completions;
+    for (let i = getAllInitialCompletions().length; i < completions.length; i++) {
+        let found = false;
+        for (let j = 0; j < items.length; j++) {
+            if (items[j].label == completions[i].label) {
+                found = true;
+            }
+        }
+        if (!found) {
+            returnedCompletions.splice(i, 1);
+        }
+    }
+    return returnedCompletions;
+}
+exports.changeOrAdd = changeOrAdd;
 function getAllInitialCompletions() {
     return [
         {
@@ -105,17 +157,17 @@ function getAllInitialCompletions() {
         {
             label: 'struct',
             kind: node_1.CompletionItemKind.Keyword,
-            data: 5
+            data: ''
         },
         {
             label: 'define-struct',
             kind: node_1.CompletionItemKind.Keyword,
-            data: 6
+            data: ''
         },
         {
             label: 'cond',
             kind: node_1.CompletionItemKind.Keyword,
-            data: 8
+            data: ''
         },
         {
             label: 'foldl',
@@ -264,7 +316,7 @@ function getAllInitialCompletions() {
         {
             label: 'list->string',
             kind: node_1.CompletionItemKind.Function,
-            data: `(list->string lst) → string?
+            data: `(define (list->string lst)) → string?
 	lst : (listof char?)`
         },
         {

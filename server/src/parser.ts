@@ -1,6 +1,7 @@
 import { CompletionItem, CompletionItemKind} from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import XRegExp from 'xregexp';
+import { changeOrAdd } from './utils';
 
 /*
 	Parse Idea.
@@ -28,20 +29,21 @@ export class Parser {
 		
 	}
 
-	public async parseVariables() : Promise<CompletionItem[]>{
+	public parseVariables() : CompletionItem[]{
 
 		let newCompletions : CompletionItem[] = [];
 		
 		this.globalParsedProgram.forEach((elem) => {
 			const parsedExpression = elem.trim().replace(/\s\s+/g, ' ').split(" ");
+			console.log(parsedExpression);
 			if (parsedExpression[0] == "define" && parsedExpression[1][0] !== "("){
 				const name = parsedExpression[1];
-				newCompletions.push({label : name, kind : CompletionItemKind.Variable});
+				newCompletions.push({label : name, kind : CompletionItemKind.Variable, data : parsedExpression[2]});
 			} 
 			
 		});
 		
-		this.globalCompletions = [... new Set([...this.globalCompletions, ...newCompletions])];
+		this.globalCompletions = changeOrAdd(newCompletions, this.globalCompletions)
 		return this.globalCompletions;
 	}
 
@@ -75,8 +77,8 @@ export class Parser {
 			} 
 			
 		});
+		this.globalCompletions = changeOrAdd(newCompletions, this.globalCompletions)
 
-		this.globalCompletions = [... new Set([...this.globalCompletions, ...newCompletions])];
 
 		return this.globalCompletions;
 	}
@@ -89,3 +91,4 @@ export class Parser {
 
 	
 }
+

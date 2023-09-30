@@ -3,8 +3,8 @@ import {
 	TextDocuments,
 	Diagnostic,
 	Location,
-	DiagnosticSeverity,
 	Definition,
+	DiagnosticSeverity,
 	ProposedFeatures,
 	InitializeParams,
 	DidChangeConfigurationNotification,
@@ -19,14 +19,15 @@ import {
 	Hover,
 	MarkupKind,
 	TextDocumentChangeEvent,
-	Position
+	Position,
+	HoverParams
 } from 'vscode-languageserver/node';
 
 import {
 	TextDocument,
 } from 'vscode-languageserver-textdocument';
 
-import { checkLang, getAllInitialCompletions } from './utils';
+import { checkLang, getAllInitialCompletions, getWordRangeAtPosition } from './utils';
 import { Parser } from './parser';
 import { execPromise, itemDetailer } from './utils';
 import { URI } from 'vscode-uri'
@@ -35,6 +36,7 @@ import fileUriToPath from 'file-uri-to-path';
 // Also include all preview / proposed LSP features.
 const connection = createConnection(ProposedFeatures.all);
 let completions : CompletionItem[] = getAllInitialCompletions();
+
 // Create a simple text document manager.
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
@@ -61,7 +63,6 @@ connection.onInitialize((params: InitializeParams) => {
 
 	const result: InitializeResult = {
 		capabilities: {
-			definitionProvider : true,
 			textDocumentSync: TextDocumentSyncKind.Incremental,
 			// Tell the client that this server supports code completion.
 			completionProvider: {
@@ -80,7 +81,7 @@ connection.onInitialize((params: InitializeParams) => {
 	return result;
 });
 
-connection.onInitialized(() => {
+connection.onInitialized((params) => {
 	if (hasConfigurationCapability) {
 		// Register for all configuration changes.
 		connection.client.register(DidChangeConfigurationNotification.type, undefined);
@@ -92,7 +93,35 @@ connection.onInitialized(() => {
 	}
 });
 
-connection.onHover((handler ) => {
+
+connection.onHover((params) : HandlerResult<Hover | null | undefined, void> => {
+	const document = documents.get(params.textDocument.uri);
+	if (!document) {
+		return null;
+	}
+	
+	const position = params.position;
+	const wordRange = getWordRangeAtPosition(document, position);
+	if (!wordRange) {
+		return null;
+	}
+
+	const word = document.getText(wordRange);
+	let data = undefined
+	
+	for (let i = 0; i < completions.length; i++){
+		if (completions[i].label == word && (completions[i].kind == 3 || completions[i].kind == 6)){
+			data = completions[i].data
+		}
+	}
+	if (typeof data != 'undefined'){
+		let markdown = ['```lisp',`${data}`, '```'].join('\n');
+		return {
+			contents: { kind : "markdown", value: markdown},
+			range: wordRange,
+		};
+	}
+
 	return null;
 });
 
@@ -143,7 +172,6 @@ function getDocumentSettings(resource: string): Thenable<ExampleSettings> {
 documents.onDidClose(e => {
 	documentSettings.delete(e.document.uri);
 });
-
 
 
 // The content of a text document has changed. This event is emitted
@@ -203,7 +231,8 @@ connection.onCompletion(
 		if (document !== undefined){
 			// TO DO: Get rid of repetition bug
 			const parser = new Parser(document,completions);
-			return parser.parseEverything();
+			completions = parser.parseEverything();
+			return completions
 			
 		} else {
 			throw Error("Unknown file")
@@ -217,19 +246,6 @@ connection.onCompletion(
 //here i need to add some kind of env
 connection.onCompletionResolve(
 	(item: CompletionItem): CompletionItem => {
-		if (item.data === 1) {
-			item.detail = '#lang <lang>';
-			item.documentation = 'You should input language name in place <lang>';
-		} else if (item.data === 2) {
-			item.detail = 'define <expr>';
-			item.documentation = "define let's you define a function, or preety much anything";
-		} else if (item.data == 3) {
-			item.detail = 'provide'
-			item.documentation = 'random'
-		} else if (item.data == 4) {
-			item.detail = 'max'
-			item.documentation = 'in racket : (max exp exp ...) in plait : (max arg1 arg2)'
-		}
 		return itemDetailer(item);
 	}
 );
