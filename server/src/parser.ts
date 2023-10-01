@@ -34,17 +34,24 @@ export class Parser {
 		let newCompletions : CompletionItem[] = [];
 		
 		this.globalParsedProgram.forEach((elem) => {
-			const parsedExpression = elem.trim().replace(/\s\s+/g, ' ').split(" ");
+			const parsedExpression = elem.trim().replace(/\s\s+/g, ' ');
+			const parsedSplitExpression = parsedExpression.split(" ");
 			console.log(parsedExpression);
-			if (parsedExpression[0] == "define" && parsedExpression[1][0] !== "("){
-				const name = parsedExpression[1];
-				newCompletions.push({label : name, kind : CompletionItemKind.Variable, data : parsedExpression[2]});
+			if (parsedSplitExpression[0] == "define" && parsedSplitExpression[1][0] !== "(" && parsedSplitExpression[2][0] !== "("){
+				const name = parsedSplitExpression[1];
+				newCompletions.push({label : name, kind : CompletionItemKind.Variable, data : `${name}: ${parsedSplitExpression[2]}`});
 			} 
-			
+			if (parsedSplitExpression[0] == "define" && parsedSplitExpression[1][0] !== "(" && parsedSplitExpression[2][0] == "("){
+				const name = parsedSplitExpression[1];
+				try {
+					const dataExpr = XRegExp.matchRecursive(parsedExpression,  '\\(', '\\)', 'g')
+					newCompletions.push({label : name, kind : CompletionItemKind.Variable, data : `${name}: (${dataExpr})`});
+				} catch (error) {}
+			} 
 		});
 		
-		this.globalCompletions = changeOrAdd(newCompletions, this.globalCompletions)
-		return this.globalCompletions;
+	
+		return newCompletions;
 	}
 
 	public parseFunctions() : CompletionItem[]{
@@ -77,15 +84,15 @@ export class Parser {
 			} 
 			
 		});
-		this.globalCompletions = changeOrAdd(newCompletions, this.globalCompletions)
-
-
-		return this.globalCompletions;
+		
+		return newCompletions
 	}
 
 	public  parseEverything() : CompletionItem[]{
-		this.parseVariables()
-		return this.parseFunctions()
+		const vars = this.parseVariables()
+		const funcs = this.parseFunctions()
+		const newCompletions = vars.concat(funcs);
+		return changeOrAdd(newCompletions, this.globalCompletions)
 	}
 	
 

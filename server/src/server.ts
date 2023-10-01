@@ -20,7 +20,8 @@ import {
 	MarkupKind,
 	TextDocumentChangeEvent,
 	Position,
-	HoverParams
+	HoverParams,
+	DidOpenTextDocumentParams
 } from 'vscode-languageserver/node';
 
 import {
@@ -96,7 +97,7 @@ connection.onInitialized((params) => {
 
 connection.onHover((params) : HandlerResult<Hover | null | undefined, void> => {
 	const document = documents.get(params.textDocument.uri);
-	if (!document) {
+	if (typeof document == "undefined") {
 		return null;
 	}
 	
@@ -110,7 +111,7 @@ connection.onHover((params) : HandlerResult<Hover | null | undefined, void> => {
 	let data = undefined
 	
 	for (let i = 0; i < completions.length; i++){
-		if (completions[i].label == word && (completions[i].kind == 3 || completions[i].kind == 6)){
+		if (completions[i].label == word && completions[i].kind != 14 ){
 			data = completions[i].data
 		}
 	}
@@ -178,6 +179,7 @@ documents.onDidClose(e => {
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent(change => {
 	validateTextDocument(change.document);
+	completions = new Parser(change.document, completions).parseEverything()
 });
 
 
@@ -223,22 +225,18 @@ connection.onDidChangeWatchedFiles(_change => {
 // This handler provides the initial list of the completion items.
 connection.onCompletion(
 	(_textDocumentPosition: TextDocumentPositionParams): CompletionItem[] => {
-		// The pass parameter contains the position of the text document in
-		// which code complete got requested. For the example we ignore this
-		// info and always provide the same completion items.
-		
 		const document = documents.get(_textDocumentPosition.textDocument.uri)
 		if (document !== undefined){
-			// TO DO: Get rid of repetition bug
-			const parser = new Parser(document,completions);
-			completions = parser.parseEverything();
-			return completions
+			
+		
+			return new Parser(document,completions).parseEverything()
 			
 		} else {
 			throw Error("Unknown file")
 		}
 	}
 );
+
 
 // This handler resolves additional information for the item selected in
 // the completion list.
