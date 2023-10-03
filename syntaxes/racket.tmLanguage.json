@@ -1084,6 +1084,100 @@
 					"match": "(?x)\n  (?<=^|[()\\[\\]{}\",'`;\\s])\n  (?: \\#[xX](?: \\#[eEiI])? | (?: \\#[eEiI])?\\#[xX])\n  (?:\n    (?:\n      (?:\n        (?:\n          (?:\n            (?: [+-]? [0-9a-fA-F]+ \\#* \\/ [0-9a-fA-F]+ \\#*)|\n            (?: [+-]? [0-9a-fA-F] \\. [0-9a-fA-F]+ \\#*) |\n            (?: [+-]? [0-9a-fA-F]+ \\#* \\. \\#*) |\n            (?: [+-]? [0-9a-fA-F]+ \\#*)\n          ) (?: [slSL] [+-]? [0-9a-fA-F]+)?\n        ) |\n        [+-] (?: (?: [iI][nN][fF])\\.[0f] | (?: [nN][aA][nN])\\.[0f])\n      ) @\n      (?:\n        (?:\n          (?:\n            (?: [+-]? [0-9a-fA-F]+ \\#* \\/ [0-9a-fA-F]+ \\#*)|\n            (?: [+-]? [0-9a-fA-F]+ \\. [0-9a-fA-F]+ \\#*) |\n            (?: [+-]? [0-9a-fA-F]+ \\#* \\. \\#*) |\n            (?: [+-]? [0-9a-fA-F]+ \\#*)\n          ) (?: [slSL] [+-]? [0-9a-fA-F]+)?\n        ) |\n        (?: (?: [iI][nN][fF])\\.[0f] | (?: [nN][aA][nN])\\.[0f])\n      )\n    ) |\n    (?:\n      (?:\n        (?:\n          (?:\n            (?: [+-]? [0-9a-fA-F]+ \\#* \\/ [0-9a-fA-F]+ \\#*)|\n            (?: [+-]? [0-9a-fA-F]+ \\. [0-9a-fA-F]+ \\#*) |\n            (?: [+-]? [0-9a-fA-F]+ \\#* \\. \\#*) |\n            (?: [+-]? [0-9a-fA-F]+ \\#*)\n          ) (?: [slSL] [+-]? [0-9a-fA-F]+)?\n        ) |\n        [+-] (?: (?: [iI][nN][fF])\\.[0f] | (?: [nN][aA][nN])\\.[0f])\n      )? [+-]\n      (?:\n        (?:\n          (?:\n            (?: [+-]? [0-9a-fA-F]+ \\#* \\/ [0-9a-fA-F]+ \\#*)|\n            (?: [+-]? [0-9a-fA-F]+ \\. [0-9a-fA-F]+ \\#*) |\n            (?: [+-]? [0-9a-fA-F]+ \\#* \\. \\#*) |\n            (?: [+-]? [0-9a-fA-F]+ \\#*)\n          ) (?: [slSL] [+-]? [0-9a-fA-F]+)?\n        ) |\n        (?: (?: [iI][nN][fF])\\.[0f] | (?: [nN][aA][nN])\\.[0f]) |\n      ) i\n    ) |\n    [+-] (?: (?: [iI][nN][fF])\\.[0f] | (?: [nN][aA][nN])\\.[0f]) |\n    (?:\n      (?: [+-]? [0-9a-fA-F]+ \\#* \\/ [0-9a-fA-F]+ \\#*)|\n      (?: [+-]? [0-9a-fA-F]* \\. [0-9a-fA-F]+ \\#*) |\n      (?: [+-]? [0-9a-fA-F]+ \\#* \\. \\#*) |\n      (?: [+-]? [0-9a-fA-F]+ \\#*)\n    ) (?: [slSL] [+-]? [0-9a-fA-F]+)?\n  ) (?=$|[()\\[\\]{}\",'`;\\s])\n"
 				}
 			]
+		},
+		"struct": {
+			"patterns": [
+				{
+					"name": "meta.struct.fields.racket",
+					"begin": "(?x) (?<=[(\\[{]) \\s*\n(struct) \\s+\n([^(\\#)\\[\\]{}\",'`;\\s][^()\\[\\]{}\",'`;\\s]*)\n(?: \\s+ [^(\\#)\\[\\]{}\",'`;\\s][^()\\[\\]{}\",'`;\\s]*)? \\s*\n(\\()\n",
+					"beginCaptures": {
+						"1": {
+							"name": "storage.struct.racket"
+						},
+						"2": {
+							"name": "entity.name.struct.racket"
+						},
+						"3": {
+							"name": "punctuation.section.fields.begin.racket"
+						}
+					},
+					"end": "\\)",
+					"endCaptures": {
+						"0": {
+							"name": "punctuation.section.fields.end.racket"
+						}
+					},
+					"patterns": [
+						{
+							"include": "#comment"
+						},
+						{
+							"include": "#default-args-struct"
+						},
+						{
+							"include": "#struct-field"
+						}
+					]
+				},
+				{
+					"name": "meta.struct.fields.racket",
+					"begin": "(?x) (?<=[(\\[{]) \\s*\n(struct) \\s+\n([^(\\#)\\[\\]{}\",'`;\\s][^()\\[\\]{}\",'`;\\s]*)\n(?: \\s+ [^(\\#)\\[\\]{}\",'`;\\s][^()\\[\\]{}\",'`;\\s]*)? \\s*\n(\\[)\n",
+					"beginCaptures": {
+						"1": {
+							"name": "storage.struct.racket"
+						},
+						"2": {
+							"name": "entity.name.struct.racket"
+						},
+						"3": {
+							"name": "punctuation.section.fields.begin.racket"
+						}
+					},
+					"end": "\\]",
+					"endCaptures": {
+						"0": {
+							"name": "punctuation.section.fields.end.racket"
+						}
+					},
+					"patterns": [
+						{
+							"include": "#default-args-struct"
+						},
+						{
+							"include": "#struct-field"
+						}
+					]
+				},
+				{
+					"name": "meta.struct.fields.racket",
+					"begin": "(?x) (?<=[(\\[{]) \\s*\n(struct) \\s+\n([^(\\#)\\[\\]{}\",'`;\\s][^()\\[\\]{}\",'`;\\s]*)\n(?: \\s+ [^(\\#)\\[\\]{}\",'`;\\s][^()\\[\\]{}\",'`;\\s]*)? \\s*\n(\\{)\n",
+					"beginCaptures": {
+						"1": {
+							"name": "storage.struct.racket"
+						},
+						"2": {
+							"name": "entity.name.struct.racket"
+						},
+						"3": {
+							"name": "punctuation.section.fields.begin.racket"
+						}
+					},
+					"end": "}",
+					"endCaptures": {
+						"0": {
+							"name": "punctuation.section.fields.end.racket"
+						}
+					},
+					"patterns": [
+						{
+							"include": "#default-args-struct"
+						},
+						{
+							"include": "#struct-field"
+						}
+					]
+				}
+			]
 		}
 	},
 	"scopeName": "source.rkt"
