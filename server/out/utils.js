@@ -5,9 +5,14 @@ const node_1 = require("vscode-languageserver/node");
 const child_process_1 = require("child_process");
 function execPromise(cmd) {
     return new Promise(function (resolve, reject) {
-        (0, child_process_1.exec)(cmd, function (err, stdout, stderr) {
+        const child = (0, child_process_1.exec)(cmd, function (err, stdout, stderr) {
+            child.kill();
             resolve(stderr);
         });
+        // Only for linux/macOs
+        setTimeout(() => {
+            child.kill();
+        }, 4000);
     });
 }
 exports.execPromise = execPromise;

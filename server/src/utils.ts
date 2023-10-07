@@ -10,13 +10,22 @@ import {
 
 import { Position, TextDocument } from 'vscode-languageserver-textdocument';
 import { Parser } from './parser';
-import { exec } from 'child_process';
+import { exec} from 'child_process';
 
 export function execPromise(cmd : string) {
     return new Promise(function(resolve, reject) {
-        exec(cmd, function(err, stdout, stderr) {
+
+		
+        const child = exec(cmd, function(err, stdout, stderr) {
+			child.kill();
             resolve(stderr);
         });
+		// Only for linux/macOs
+		setTimeout(() => {
+			child.kill();
+		}, 4000);
+		
+
     });
 }
 
