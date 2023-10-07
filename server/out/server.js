@@ -12,6 +12,7 @@ const connection = (0, node_1.createConnection)(node_1.ProposedFeatures.all);
 let completions = (0, utils_1.getAllInitialCompletions)();
 // Create a simple text document manager.
 const documents = new node_1.TextDocuments(vscode_languageserver_textdocument_1.TextDocument);
+let executor = [];
 let canOptimize = false;
 let hasConfigurationCapability = false;
 let hasWorkspaceFolderCapability = false;
@@ -123,14 +124,23 @@ documents.onDidClose(e => {
 });
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
-documents.onDidChangeContent(change => {
+documents.onDidChangeContent((change) => {
+    executor.push(errors_1.scanFile);
+    validateRacketDocument(change.document);
     completions = new parser_1.Parser(change.document, completions).parseEverything();
     canOptimize = true;
-    validateRacketDocument(change.document);
 });
 async function validateRacketDocument(textDocument) {
-    const diagnostics = await new errors_1.RacketErrorsHandler(textDocument).scanFile();
-    connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
+    console.log(executor.length);
+    await (0, utils_1.sleep)(1500);
+    if (executor.length >= 1) {
+        let myFunc = executor.at(-1);
+        executor = [];
+        if (typeof myFunc != 'undefined') {
+            const diagnostics = await myFunc(textDocument);
+            connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
+        }
+    }
 }
 connection.onCompletion((_textDocumentPosition) => {
     const document = documents.get(_textDocumentPosition.textDocument.uri);

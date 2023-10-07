@@ -26,14 +26,15 @@ import {
 
 import {
 	TextDocument,
+	TextDocumentContentChangeEvent
 } from 'vscode-languageserver-textdocument';
 
-import {getAllInitialCompletions, getWordRangeAtPosition } from './utils';
+import {getAllInitialCompletions, getWordRangeAtPosition, sleep } from './utils';
 import { Parser } from './parser';
 import { execPromise, itemDetailer } from './utils';
 import { URI } from 'vscode-uri'
 import fileUriToPath from 'file-uri-to-path';
-import { RacketErrorsHandler } from './errors';
+import { scanFile } from './errors';
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
 const connection = createConnection(ProposedFeatures.all);
@@ -42,6 +43,8 @@ let completions : CompletionItem[] = getAllInitialCompletions();
 // Create a simple text document manager.
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
+
+let executor : {(text : TextDocument) : Promise<Diagnostic[]>; }[] = [];
 let canOptimize = false;
 let hasConfigurationCapability = false;
 let hasWorkspaceFolderCapability = false;
@@ -186,16 +189,25 @@ documents.onDidClose(e => {
 
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
-documents.onDidChangeContent(change => {
+documents.onDidChangeContent((change) => {
+	executor.push(scanFile);
+	validateRacketDocument(change.document);
 	completions = new Parser(change.document, completions).parseEverything();
 	canOptimize = true;
-	validateRacketDocument(change.document);
 });
 
 
 async function validateRacketDocument(textDocument: TextDocument): Promise<void> {
-	const diagnostics = await new RacketErrorsHandler(textDocument).scanFile();
-	connection.sendDiagnostics({ uri: textDocument.uri, diagnostics})
+	console.log(executor.length);
+	await sleep(1500);
+	if (executor.length >= 1){
+		let myFunc = executor.at(-1);
+		executor = [];
+		if (typeof myFunc != 'undefined'){
+			const diagnostics = await myFunc(textDocument);
+			connection.sendDiagnostics({ uri: textDocument.uri, diagnostics})
+		}
+	}
 }
 
 connection.onCompletion(

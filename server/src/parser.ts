@@ -28,20 +28,21 @@ export class Parser {
 		let newCompletions : CompletionItem[] = [];
 		
 		this.globalParsedProgram.forEach((elem) => {
-			const parsedExpression = elem.trim().replace(/\s\s+/g, ' ');
-			const parsedSplitExpression = parsedExpression.split(" ");
-			
-			if (parsedSplitExpression[0] == "define" && parsedSplitExpression[1][0] !== "(" && parsedSplitExpression[2][0] !== "("){
-				const name = parsedSplitExpression[1];
-				newCompletions.push({label : name, kind : CompletionItemKind.Variable, data : `${name}: ${parsedSplitExpression[2]}`});
-			} 
-			if (parsedSplitExpression[0] == "define" && parsedSplitExpression[1][0] !== "(" && parsedSplitExpression[2][0] == "("){
-				const name = parsedSplitExpression[1];
-				try {
-					const dataExpr = XRegExp.matchRecursive(parsedExpression,  '\\(', '\\)', 'g')
-					newCompletions.push({label : name, kind : CompletionItemKind.Variable, data : `${name}: (${dataExpr})`});
-				} catch (error) {}
-			} 
+			try {
+				const parsedExpression = elem.trim().replace(/\s\s+/g, ' ');
+				const parsedSplitExpression = parsedExpression.split(" ");
+				if (parsedSplitExpression[0] == "define" && parsedSplitExpression[1][0] !== "(" && parsedSplitExpression[2][0] !== "("){
+					const name = parsedSplitExpression[1];
+					newCompletions.push({label : name, kind : CompletionItemKind.Variable, data : `${name}: ${parsedSplitExpression[2]}`});
+				} 
+				if (parsedSplitExpression[0] == "define" && parsedSplitExpression[1][0] !== "(" && parsedSplitExpression[2][0] == "("){
+					const name = parsedSplitExpression[1];
+					try {
+						const dataExpr = XRegExp.matchRecursive(parsedExpression,  '\\(', '\\)', 'g')
+						newCompletions.push({label : name, kind : CompletionItemKind.Variable, data : `${name}: (${dataExpr})`});
+					} catch (error) {}
+				} 
+			} catch (error) {}
 		});
 		
 	
@@ -53,30 +54,31 @@ export class Parser {
 		let newCompletions : CompletionItem[] = [];
 		
 		this.globalParsedProgram.forEach((elem) => {
-			const parsedExpression = elem.trim().replace(/\s\s+/g, ' ').split(" ");
-			if ((parsedExpression[0] == "define" || parsedExpression[0] == "define/contract") && parsedExpression[1][0] == "("){
-				let name;
-				if (parsedExpression[1].length > 1){
-					name = parsedExpression[1].substring(1);
-					if (parsedExpression[1].slice(-1) == ")"){
-						name = name.slice(0, -1);
+			try {
+				const parsedExpression = elem.trim().replace(/\s\s+/g, ' ').split(" ");
+				if ((parsedExpression[0] == "define" || parsedExpression[0] == "define/contract") && parsedExpression[1][0] == "("){
+					let name;
+					if (parsedExpression[1].length > 1){
+						name = parsedExpression[1].substring(1);
+						if (parsedExpression[1].slice(-1) == ")"){
+							name = name.slice(0, -1);
+						}
+					} else {
+						name = parsedExpression[2];
 					}
-				} else {
-					name = parsedExpression[2];
-				}
-				
-				let preetierDefinition : string = "";
-				for (let i = 0; i < parsedExpression.length; i++) {
-					if (parsedExpression[i].slice(-1) == ")"){
-						preetierDefinition += parsedExpression[i];
-						break;
+					
+					let preetierDefinition : string = "";
+					for (let i = 0; i < parsedExpression.length; i++) {
+						if (parsedExpression[i].slice(-1) == ")"){
+							preetierDefinition += parsedExpression[i];
+							break;
+						}
+						preetierDefinition += parsedExpression[i] + " ";
 					}
-					preetierDefinition += parsedExpression[i] + " ";
-				}
-				
-				newCompletions.push({label : name, kind : CompletionItemKind.Function, data : `(${preetierDefinition} \n ...)`});
-			} 
-			
+					
+					newCompletions.push({label : name, kind : CompletionItemKind.Function, data : `(${preetierDefinition} \n ...)`});
+				} 
+			} catch (error) {}
 		});
 		
 		return newCompletions
