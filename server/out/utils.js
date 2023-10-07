@@ -1,34 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAllInitialCompletions = exports.changeOrAdd = exports.getWordRangeAtPosition = exports.itemDetailer = exports.execPromise = exports.checkLang = void 0;
+exports.getAllInitialCompletions = exports.changeOrAdd = exports.getWordRangeAtPosition = exports.itemDetailer = exports.sleep = exports.execPromise = void 0;
 const node_1 = require("vscode-languageserver/node");
 const child_process_1 = require("child_process");
-function checkLang(textDocument) {
-    const langPattern = /(#lang+ )\w+/g;
-    if (!langPattern.test(textDocument.getText())) {
-        const diagnostic = {
-            severity: node_1.DiagnosticSeverity.Error,
-            range: {
-                start: textDocument.positionAt(0),
-                end: textDocument.positionAt(5)
-            },
-            message: `#lang <language> is required to compile .rkt files`,
-            source: `${textDocument.uri.split('/').at(-1)}`
-        };
-        return diagnostic;
-    }
-    return false;
-}
-exports.checkLang = checkLang;
-function checkEnvironment(variableName, environment) {
-    // TODO : Remove collisions, create structures to operate quickly.
-    environment.forEach((elem, index) => {
-        if (elem.label == variableName) {
-            return true;
-        }
-    });
-    return false;
-}
 function execPromise(cmd) {
     return new Promise(function (resolve, reject) {
         (0, child_process_1.exec)(cmd, function (err, stdout, stderr) {
@@ -37,13 +11,17 @@ function execPromise(cmd) {
     });
 }
 exports.execPromise = execPromise;
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+exports.sleep = sleep;
 function itemDetailer(item) {
     if (item.kind == 3 || item.kind == 6) {
         item.detail = "";
         let markdown = {
             kind: "markdown",
             value: [
-                '```lisp',
+                '```scheme',
                 `${item.data}`,
                 '```'
             ].join('\n')
@@ -78,7 +56,6 @@ function changeOrAdd(items, completions) {
     }
     items.forEach((elem) => {
         let found = false;
-        console.log(elem);
         for (let i = 0; i < completions.length; i++) {
             if (completions[i].label == elem.label) {
                 found = true;

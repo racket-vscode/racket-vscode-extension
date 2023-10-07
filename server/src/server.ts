@@ -26,13 +26,15 @@ import {
 
 import {
 	TextDocument,
+	TextDocumentContentChangeEvent
 } from 'vscode-languageserver-textdocument';
 
-import { checkLang, getAllInitialCompletions, getWordRangeAtPosition } from './utils';
+import {getAllInitialCompletions, getWordRangeAtPosition, sleep } from './utils';
 import { Parser } from './parser';
 import { execPromise, itemDetailer } from './utils';
 import { URI } from 'vscode-uri'
 import fileUriToPath from 'file-uri-to-path';
+import { scanFile } from './errors';
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
 const connection = createConnection(ProposedFeatures.all);
@@ -41,6 +43,9 @@ let completions : CompletionItem[] = getAllInitialCompletions();
 // Create a simple text document manager.
 const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
+
+let executor : {(text : TextDocument) : Promise<Diagnostic[]>; }[] = [];
+let canOptimize = false;
 let hasConfigurationCapability = false;
 let hasWorkspaceFolderCapability = false;
 let hasDiagnosticRelatedInformationCapability = false;
@@ -89,9 +94,11 @@ connection.onInitialized((params) => {
 	}
 	if (hasWorkspaceFolderCapability) {
 		connection.workspace.onDidChangeWorkspaceFolders(_event => {
-			connection.console.log('Workspace folder change event received.');
+			//connection.console.log('Workspace folder change event received.');
 		});
 	}
+
+	
 });
 
 
@@ -99,6 +106,11 @@ connection.onHover((params) : HandlerResult<Hover | null | undefined, void> => {
 	const document = documents.get(params.textDocument.uri);
 	if (typeof document == "undefined") {
 		return null;
+	}
+
+	if (canOptimize == false){
+		completions = new Parser(document, completions).parseEverything();
+		canOptimize = true;
 	}
 	
 	const position = params.position;
@@ -116,7 +128,7 @@ connection.onHover((params) : HandlerResult<Hover | null | undefined, void> => {
 		}
 	}
 	if (typeof data != 'undefined'){
-		let markdown = ['```lisp',`${data}`, '```'].join('\n');
+		let markdown = ['```scheme',`${data}`, '```'].join('\n');
 		return {
 			contents: { kind : "markdown", value: markdown},
 			range: wordRange,
@@ -151,7 +163,7 @@ connection.onDidChangeConfiguration(change => {
 	}
 
 	// Revalidate all open text documents
-	documents.all().forEach(validateTextDocument);
+	documents.all().forEach(validateRacketDocument);
 });
 
 function getDocumentSettings(resource: string): Thenable<ExampleSettings> {
@@ -177,52 +189,27 @@ documents.onDidClose(e => {
 
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
-documents.onDidChangeContent(change => {
-	validateTextDocument(change.document);
-	completions = new Parser(change.document, completions).parseEverything()
+documents.onDidChangeContent((change) => {
+	executor.push(scanFile);
+	validateRacketDocument(change.document);
+	completions = new Parser(change.document, completions).parseEverything();
+	canOptimize = true;
 });
 
 
-async function validateTextDocument(textDocument: TextDocument): Promise<void> {
-	// In this simple example we get the settings for every validate run.
-	const diagnostics: Diagnostic[] = [];
-	const output = await execPromise(`racket "${fileUriToPath(decodeURIComponent(textDocument.uri))}"`);
-	console.log(fileUriToPath(decodeURIComponent(textDocument.uri)));
-	console.log(output);
-	if (typeof output === "string"){
-		const info = output.split('\n')[0]
-		let start = 0
-		let pos = 0
-		console.log(output.split('\n')[0].split(":"));
-			if (info == ""){
-				connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
-			} else {
-				console.log(info);
-				if (output.split('\n')[0].split(":")[2] != null){
-					start = Number(output.split('\n')[0].split(":")[1]) - 1
-					pos = Number(output.split('\n')[0].split(":")[2]) 
-				
-				}
-				diagnostics.push({
-					severity: DiagnosticSeverity.Error,
-					message : info,
-					range: {
-						start: Position.create(start, pos),
-						end: Position.create(start, pos)
-					},
-					source: `${textDocument.uri.split('/').at(-1)}`
-				})
-				connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
-			}
+async function validateRacketDocument(textDocument: TextDocument): Promise<void> {
+	console.log(executor.length);
+	await sleep(1500);
+	if (executor.length >= 1){
+		let myFunc = executor.at(-1);
+		executor = [];
+		if (typeof myFunc != 'undefined'){
+			const diagnostics = await myFunc(textDocument);
+			connection.sendDiagnostics({ uri: textDocument.uri, diagnostics})
+		}
 	}
 }
 
-connection.onDidChangeWatchedFiles(_change => {
-	// Monitored files have change in VSCode
-	connection.console.log('We received an file change event');
-});
-
-// This handler provides the initial list of the completion items.
 connection.onCompletion(
 	(_textDocumentPosition: TextDocumentPositionParams): CompletionItem[] => {
 		const document = documents.get(_textDocumentPosition.textDocument.uri)

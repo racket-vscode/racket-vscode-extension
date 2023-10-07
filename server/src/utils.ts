@@ -12,42 +12,16 @@ import { Position, TextDocument } from 'vscode-languageserver-textdocument';
 import { Parser } from './parser';
 import { exec } from 'child_process';
 
-export function checkLang(textDocument : TextDocument)  : Diagnostic | false {
-
-	const langPattern = /(#lang+ )\w+/g;
-	if (!langPattern.test(textDocument.getText())){
-		const diagnostic: Diagnostic = {
-			severity: DiagnosticSeverity.Error,
-			range: {
-				start: textDocument.positionAt(0),
-				end: textDocument.positionAt(5)
-			},
-			message: `#lang <language> is required to compile .rkt files`,
-			source: `${textDocument.uri.split('/').at(-1)}`
-		};
-		return diagnostic
-
-	}
-	return false
-
-}
-function checkEnvironment(variableName : string, environment : CompletionItem[] ) : Boolean{
-	// TODO : Remove collisions, create structures to operate quickly.
-
-	environment.forEach((elem, index) => {
-		if (elem.label == variableName){
-			return true;
-		}
-	});
-	return false;
-}
-
 export function execPromise(cmd : string) {
     return new Promise(function(resolve, reject) {
         exec(cmd, function(err, stdout, stderr) {
             resolve(stderr);
         });
     });
+}
+
+export function sleep(ms: number) {
+    return new Promise( resolve => setTimeout(resolve, ms) );
 }
 
 export function itemDetailer(item : CompletionItem) : CompletionItem {
@@ -57,7 +31,7 @@ export function itemDetailer(item : CompletionItem) : CompletionItem {
 		let markdown: MarkupContent = {
 			kind: "markdown",
 			value: [
-			  '```lisp',
+			  '```scheme',
 			  `${item.data}`,
 			  '```'
 			].join('\n')
@@ -77,7 +51,7 @@ export function getWordRangeAtPosition(document : TextDocument, position : Posit
 
 		[...currentLine.matchAll(/[\w\d-.><="?]+/g)].forEach((elem) =>{
 			if (typeof elem.index != 'undefined'){
-				if (position.character >= elem.index  && position.character <= elem.index + elem[0].length){
+				if (position.character >= elem.index && position.character <= elem.index + elem[0].length){
 					start = elem.index
 					end = start + elem[0].length
 				}
@@ -100,7 +74,6 @@ export function changeOrAdd(items : CompletionItem[], completions : CompletionIt
 
 	items.forEach((elem) => {
 		let found = false;
-		console.log(elem);
 		for (let i = 0; i < completions.length; i++){
 			if (completions[i].label == elem.label){
 				found = true
