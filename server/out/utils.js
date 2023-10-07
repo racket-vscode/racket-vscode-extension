@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAllInitialCompletions = exports.changeOrAdd = exports.getWordRangeAtPosition = exports.itemDetailer = exports.execPromise = void 0;
+exports.getAllInitialCompletions = exports.changeOrAdd = exports.getWordRangeAtPosition = exports.itemDetailer = exports.sleep = exports.execPromise = void 0;
 const node_1 = require("vscode-languageserver/node");
 const child_process_1 = require("child_process");
 function execPromise(cmd) {
@@ -11,6 +11,10 @@ function execPromise(cmd) {
     });
 }
 exports.execPromise = execPromise;
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+exports.sleep = sleep;
 function itemDetailer(item) {
     if (item.kind == 3 || item.kind == 6) {
         item.detail = "";

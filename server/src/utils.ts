@@ -20,6 +20,10 @@ export function execPromise(cmd : string) {
     });
 }
 
+export function sleep(ms: number) {
+    return new Promise( resolve => setTimeout(resolve, ms) );
+}
+
 export function itemDetailer(item : CompletionItem) : CompletionItem {
 
 	if (item.kind == 3 || item.kind == 6){

@@ -33,7 +33,7 @@ import { Parser } from './parser';
 import { execPromise, itemDetailer } from './utils';
 import { URI } from 'vscode-uri'
 import fileUriToPath from 'file-uri-to-path';
-import { RacketErrors } from './errors';
+import { RacketErrorsHandler } from './errors';
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
 const connection = createConnection(ProposedFeatures.all);
@@ -194,8 +194,7 @@ documents.onDidChangeContent(change => {
 
 
 async function validateRacketDocument(textDocument: TextDocument): Promise<void> {
-	const diagnostics = new RacketErrors(textDocument).scanFile();
-	console.log(diagnostics);
+	const diagnostics = await new RacketErrorsHandler(textDocument).scanFile();
 	connection.sendDiagnostics({ uri: textDocument.uri, diagnostics})
 }
 

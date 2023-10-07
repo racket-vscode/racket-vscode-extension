@@ -129,8 +129,7 @@ documents.onDidChangeContent(change => {
     validateRacketDocument(change.document);
 });
 async function validateRacketDocument(textDocument) {
-    const diagnostics = new errors_1.RacketErrors(textDocument).scanFile();
-    console.log(diagnostics);
+    const diagnostics = await new errors_1.RacketErrorsHandler(textDocument).scanFile();
     connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
 }
 connection.onCompletion((_textDocumentPosition) => {

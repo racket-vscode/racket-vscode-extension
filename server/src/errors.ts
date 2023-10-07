@@ -1,58 +1,53 @@
 import { Diagnostic, DiagnosticSeverity, Position} from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import XRegExp from 'xregexp';
+import { sleep, execPromise} from './utils';
+import fileUriToPath from 'file-uri-to-path';
 
 
 
-export class RacketErrors {
+export class RacketErrorsHandler {
 
 	globalTextFile : TextDocument;
-	globalParsedProgram : string[];
 	
 	constructor(text : TextDocument){
 		this.globalTextFile = text;
-		// If parentasee is unclosed, we will get an error, we should log it.
-		try {
-			this.globalParsedProgram = XRegExp.matchRecursive(this.globalTextFile.getText(), '\\(', '\\)', 'g');
-		} catch (error) {
-			console.log(error);
-			this.globalParsedProgram = [""]
-			return;
+
+	}
+
+	public async scanFile() : Promise<Diagnostic[]>{
+		await sleep(3000);
+		const diagnostics: Diagnostic[] = [];
+		const output = await execPromise(`racket "${fileUriToPath(decodeURIComponent(this.globalTextFile.uri))}"`);
+		console.log(fileUriToPath(decodeURIComponent(this.globalTextFile.uri)));
+		console.log(output);
+		if (typeof output === "string"){
+			const info = output.split('\n')[0]
+			let start = 0
+			let pos = 0
+			console.log(output.split('\n')[0].split(":"));
+				if (info == ""){
+					return diagnostics ;
+				} else {
+					console.log(info);
+					if (output.split('\n')[0].split(":")[2] != null){
+						start = Number(output.split('\n')[0].split(":")[1]) - 1
+						pos = Number(output.split('\n')[0].split(":")[2]) 
+					
+					}
+					diagnostics.push({
+						severity: DiagnosticSeverity.Error,
+						message : info,
+						range: {
+							start: Position.create(start, pos),
+							end: Position.create(start, pos)
+						},
+						source: `${this.globalTextFile.uri.split('/').at(-1)}`
+					})
+					return diagnostics;
+				}
 		}
-		
-	}
-
-	public scanDefinitions() : Diagnostic[]{
-
-		let newErrors : Diagnostic[] = [];
-		
-		this.globalParsedProgram.forEach((elem) => {
-			const parsedExpression = elem.trim().replace(/\s\s+/g, ' ');
-			const parsedSplitExpression = parsedExpression.split(" ");
-			console.log(parsedExpression);
-			if (parsedSplitExpression[0] == "define" && parsedSplitExpression[1][0] !== "(" && parsedSplitExpression[2][0] !== "("){
-				
-			} 
-			if (parsedSplitExpression[0] == "define" && parsedSplitExpression[1][0] !== "(" && parsedSplitExpression[2][0] == "("){
-				
-			} 
-		});
-		
-	
-		return newErrors;
-	}
-
-	public scanFile() : Diagnostic[]{
-		
-		return [...this.scanDefinitions()].concat({
-			severity: DiagnosticSeverity.Error,
-			message : "test",
-			range: {
-			start: Position.create(1, 1),
-			end: Position.create(1, 1)
-			},
-			source: `${this.globalTextFile.uri.split('/').at(-1)}`
-		})
+		return [];
 	}
 }
 
