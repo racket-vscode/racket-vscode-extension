@@ -10,22 +10,29 @@ import {
 
 import { Position, TextDocument } from 'vscode-languageserver-textdocument';
 import { Parser } from './parser';
-import { exec} from 'child_process';
+import { exec, spawn} from 'child_process';
 
 export function execPromise(cmd : string) {
     return new Promise(function(resolve, reject) {
 
-		
-        const child = exec(cmd, function(err, stdout, stderr) {
-			child.kill();
-            resolve(stderr);
-        });
-		// Only for linux/macOs
-		setTimeout(() => {
-			child.kill();
-		}, 4000);
-		
-
+		if (process.platform != 'win32'){
+			const child = exec(cmd, function(err, stdout, stderr) {
+				resolve(stderr);
+			});
+			
+			setTimeout(() => {
+				child.kill();
+			}, 1200);
+		} else {
+			const child = exec(cmd, function(err, stdout, stderr) {
+				resolve(stderr);
+			});
+			
+			setTimeout(() => {
+				spawn('taskkill', ["/pid", child.pid!.toString(), '/f', '/t'])
+			}, 700);	
+		}
+       
     });
 }
 
@@ -35,12 +42,12 @@ export function sleep(ms: number) {
 
 export function itemDetailer(item : CompletionItem) : CompletionItem {
 
-	if (item.kind == 3 || item.kind == 6){
+	if (item.kind == 3 || item.kind == 6 || item.kind == 7){
 		item.detail = "";
 		let markdown: MarkupContent = {
 			kind: "markdown",
 			value: [
-			  '```scheme',
+			  '```racket',
 			  `${item.data}`,
 			  '```'
 			].join('\n')

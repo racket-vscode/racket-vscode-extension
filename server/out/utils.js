@@ -5,14 +5,22 @@ const node_1 = require("vscode-languageserver/node");
 const child_process_1 = require("child_process");
 function execPromise(cmd) {
     return new Promise(function (resolve, reject) {
-        const child = (0, child_process_1.exec)(cmd, function (err, stdout, stderr) {
-            child.kill();
-            resolve(stderr);
-        });
-        // Only for linux/macOs
-        setTimeout(() => {
-            child.kill();
-        }, 4000);
+        if (process.platform != 'win32') {
+            const child = (0, child_process_1.exec)(cmd, function (err, stdout, stderr) {
+                resolve(stderr);
+            });
+            setTimeout(() => {
+                child.kill();
+            }, 1200);
+        }
+        else {
+            const child = (0, child_process_1.exec)(cmd, function (err, stdout, stderr) {
+                resolve(stderr);
+            });
+            setTimeout(() => {
+                (0, child_process_1.spawn)('taskkill', ["/pid", child.pid.toString(), '/f', '/t']);
+            }, 700);
+        }
     });
 }
 exports.execPromise = execPromise;
@@ -21,12 +29,12 @@ function sleep(ms) {
 }
 exports.sleep = sleep;
 function itemDetailer(item) {
-    if (item.kind == 3 || item.kind == 6) {
+    if (item.kind == 3 || item.kind == 6 || item.kind == 7) {
         item.detail = "";
         let markdown = {
             kind: "markdown",
             value: [
-                '```scheme',
+                '```racket',
                 `${item.data}`,
                 '```'
             ].join('\n')

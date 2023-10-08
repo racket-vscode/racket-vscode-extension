@@ -84,10 +84,38 @@ export class Parser {
 		return newCompletions
 	}
 
-	public  parseEverything() : CompletionItem[]{
+	public parseObjects() : CompletionItem[]{
+
+		let newCompletions : CompletionItem[] = [];
+		
+		this.globalParsedProgram.forEach((elem) => {
+			try {
+				const parsedExpression = elem.trim().replace(/\s\s+/g, ' ');
+				const parsedSplitExpression = parsedExpression.split(" ");
+				if ((parsedSplitExpression[0] == "define-struct" || parsedSplitExpression[0] == "struct")  && parsedSplitExpression[1][0] !== "(" && parsedSplitExpression[2][0] !== "("){
+					const name = parsedSplitExpression[1];
+					newCompletions.push({label : name, kind : CompletionItemKind.Class, data : `${name}: ${parsedSplitExpression[2]}`});
+				} 
+				if ((parsedSplitExpression[0] == "define-struct" || parsedSplitExpression[0] == "struct") && parsedSplitExpression[1][0] !== "(" && parsedSplitExpression[2][0] == "("){
+					const name = parsedSplitExpression[1];
+					try {
+						const dataExpr = XRegExp.matchRecursive(parsedExpression,  '\\(', '\\)', 'g')
+						newCompletions.push({label : name, kind : CompletionItemKind.Class, data : `${name}: (${dataExpr})`});
+					} catch (error) {}
+				} 
+			} catch (error) {}
+		});
+		
+	
+		return newCompletions;
+
+	}
+
+	public parseEverything() : CompletionItem[]{
 		const vars = this.parseVariables()
 		const funcs = this.parseFunctions()
-		const newCompletions = vars.concat(funcs);
+		const objs = this.parseObjects()
+		const newCompletions = vars.concat(funcs).concat(objs);
 		return changeOrAdd(newCompletions, this.globalCompletions)
 	}
 	

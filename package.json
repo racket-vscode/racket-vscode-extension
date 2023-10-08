@@ -1,7 +1,7 @@
 {
-	"name": "racket",
-	"description": "A language server example",
-	"author": "Microsoft Corporation",
+	"name": "racket-vscode",
+	"description": "Racket language support",
+	"author": "YAP",
 	"license": "MIT",
 	"version": "1.0.0",
 	"repository": {

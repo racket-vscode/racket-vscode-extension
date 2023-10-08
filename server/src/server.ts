@@ -128,9 +128,9 @@ connection.onHover((params) : HandlerResult<Hover | null | undefined, void> => {
 		}
 	}
 	if (typeof data != 'undefined'){
-		let markdown = ['```scheme',`${data}`, '```'].join('\n');
+		let markdown = ['```racket',`${data}`, '```'].join('\n');
 		return {
-			contents: { kind : "markdown", value: markdown},
+			contents: { kind : MarkupKind.Markdown, value: markdown},
 			range: wordRange,
 		};
 	}

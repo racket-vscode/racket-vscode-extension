@@ -78,9 +78,9 @@ connection.onHover((params) => {
         }
     }
     if (typeof data != 'undefined') {
-        let markdown = ['```scheme', `${data}`, '```'].join('\n');
+        let markdown = ['```racket', `${data}`, '```'].join('\n');
         return {
-            contents: { kind: "markdown", value: markdown },
+            contents: { kind: node_1.MarkupKind.Markdown, value: markdown },
             range: wordRange,
         };
     }
